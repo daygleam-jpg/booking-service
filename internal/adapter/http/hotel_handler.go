@@ -4,7 +4,6 @@ import (
 	"applicationDesignTest/internal/domain"
 	"applicationDesignTest/internal/usecase"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -85,6 +84,7 @@ func (h *HotelHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
 func (h *HotelHandler) Update(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 
@@ -96,7 +96,15 @@ func (h *HotelHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var hotel domain.Hotel
 
-	if err := h.hotelUseCase.Update(r.Context(), &hotel); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&hotel); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	hotel.ID = id
+
+	updatedHotel, err := h.hotelUseCase.Update(r.Context(), &hotel)
+	if err != nil {
 		if err.Error() == "hotel not found" {
 			http.Error(w, "Hotel not found", http.StatusNotFound)
 			return
@@ -106,25 +114,9 @@ func (h *HotelHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&hotel); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	hotel.ID = id
-
-	if err := h.hotelUseCase.Update(r.Context(), &hotel); err != nil {
-		if errors.Is(err, errors.New("hotel not found")) {
-			http.Error(w, "Hotel not found", http.StatusNotFound)
-			return
-		}
-
-		http.Error(w, "Failed to update hotel", http.StatusInternalServerError)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(hotel); err != nil {
+	if err := json.NewEncoder(w).Encode(updatedHotel); err != nil {
 		return
 	}
 }
