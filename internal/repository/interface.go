@@ -7,7 +7,7 @@ import (
 )
 
 type BookingRepository interface {
-	CreateBooking(booking domain.Booking) error
+	CreateBooking(booking domain.Booking) (int64, error)
 	CancelBooking(bookingID int) error
 }
 type RoomRepository interface {

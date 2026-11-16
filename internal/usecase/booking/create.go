@@ -27,25 +27,27 @@ type CreateBookingInput struct {
 	CheckOut time.Time
 }
 
-func (uc *BookingUseCase) CreateBooking(input CreateBookingInput) error {
+func (uc *BookingUseCase) CreateBooking(input CreateBookingInput) (int64, error) {
 	room, err := uc.roomRepo.GetRoomByID(input.RoomID)
 	if err != nil {
-		return err
+		return 0, err
 	}
+
 	if int64(input.HotelID) != room.HotelID {
-		return errors.New("room does not belong to the specified hotel")
+		return 0, errors.New("room does not belong to the specified hotel")
 	}
 
 	if room.Status == domain.RoomStatusMaintenance {
-		return errors.New("room is under maintenance")
+		return 0, errors.New("room is under maintenance")
 	}
 
 	available, err := uc.roomRepo.IsRoomAvailable(input.RoomID, input.CheckIn, input.CheckOut)
 	if err != nil {
-		return err
+		return 0, err
 	}
+
 	if !available {
-		return errors.New("room is not available")
+		return 0, errors.New("room is not available")
 	}
 
 	booking := domain.Booking{
@@ -58,16 +60,16 @@ func (uc *BookingUseCase) CreateBooking(input CreateBookingInput) error {
 		Status:    domain.StatusConfirmed,
 	}
 
-	err = booking.Validate()
-	if err != nil {
-		return err
+	if err := booking.Validate(); err != nil {
+		return 0, err
 	}
 
-	err = uc.bookingRepo.CreateBooking(booking)
+	bookingID, err := uc.bookingRepo.CreateBooking(booking)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+
+	return bookingID, nil
 }
 
 func (uc *BookingUseCase) CancelBooking(bookingID int) error {

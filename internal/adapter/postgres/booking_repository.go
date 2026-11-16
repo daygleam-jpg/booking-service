@@ -15,16 +15,19 @@ func NewBookingRepository(db *sql.DB) repository.BookingRepository {
 	return &bookingRepository{db: db}
 }
 
-func (r *bookingRepository) CreateBooking(booking domain.Booking) error {
+func (r *bookingRepository) CreateBooking(booking domain.Booking) (int64, error) {
 	query := `
 		INSERT INTO bookings (
 			user_id, hotel_id, room_id,
 			check_in, check_out, status
 		)
 		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
 	`
 
-	_, err := r.db.Exec(
+	var bookingID int64
+
+	err := r.db.QueryRow(
 		query,
 		booking.UserID,
 		booking.HotelID,
@@ -32,9 +35,9 @@ func (r *bookingRepository) CreateBooking(booking domain.Booking) error {
 		booking.CheckIn,
 		booking.CheckOut,
 		booking.Status,
-	)
+	).Scan(&bookingID)
 
-	return err
+	return bookingID, err
 }
 
 func (r *bookingRepository) CancelBooking(bookingID int) error {

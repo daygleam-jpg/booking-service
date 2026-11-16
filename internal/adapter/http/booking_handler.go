@@ -52,7 +52,8 @@ func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.bookingUC.CreateBooking(input); err != nil {
+	bookingID, err := h.bookingUC.CreateBooking(input)
+	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			http.Error(w, "Room not found", http.StatusNotFound)
@@ -69,6 +70,14 @@ func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":      bookingID,
+		"message": "Booking created successfully",
+	})
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Booking created successfully",
