@@ -44,7 +44,7 @@ func (r *bookingRepository) CancelBooking(bookingID int) error {
 	query := `
 		UPDATE bookings
 		SET status = 'cancelled'
-		WHERE id = $1 AND status = 'confirmed'
+		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(query, bookingID)
