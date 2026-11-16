@@ -36,6 +36,10 @@ func (uc *BookingUseCase) CreateBooking(input CreateBookingInput) error {
 		return errors.New("room does not belong to the specified hotel")
 	}
 
+	if room.Status == domain.RoomStatusMaintenance {
+		return errors.New("room is under maintenance")
+	}
+
 	available, err := uc.roomRepo.IsRoomAvailable(input.RoomID, input.CheckIn, input.CheckOut)
 	if err != nil {
 		return err
