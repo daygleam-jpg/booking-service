@@ -53,9 +53,15 @@ func (h *RoomHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	room.HotelID = hotelID
-
 	if err := h.roomUseCase.Create(r.Context(), &room); err != nil {
-		http.Error(w, "Failed to create room", http.StatusInternalServerError)
+		switch {
+		case strings.Contains(err.Error(), "room number already exists"):
+			http.Error(w, "Room number already exists", http.StatusConflict)
+		case strings.Contains(err.Error(), "hotel not found"):
+			http.Error(w, "Hotel not found", http.StatusNotFound)
+		default:
+			http.Error(w, "Failed to create room", http.StatusInternalServerError)
+		}
 		return
 	}
 

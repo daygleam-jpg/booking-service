@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"applicationDesignTest/internal/domain"
 	"applicationDesignTest/internal/repository"
@@ -32,6 +33,9 @@ func (r *hotelRepository) GetByID(ctx context.Context, id int64) (*domain.Hotel,
 		&hotel.CreatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("hotel not found")
+		}
 		return nil, err
 	}
 
@@ -99,7 +103,8 @@ func (r *hotelRepository) Update(ctx context.Context, hotel *domain.Hotel) error
             description = $3
         WHERE id = $4
     `
-	_, err := r.db.ExecContext(
+
+	result, err := r.db.ExecContext(
 		ctx,
 		query,
 		hotel.Name,
@@ -107,12 +112,38 @@ func (r *hotelRepository) Update(ctx context.Context, hotel *domain.Hotel) error
 		hotel.Description,
 		hotel.ID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("hotel not found")
+	}
+
+	return nil
 }
 
 func (r *hotelRepository) Delete(ctx context.Context, id int64) error {
-	query := `DELETE FROM hotels WHERE id=$1`
+	query := `DELETE FROM hotels WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, id)
-	return err
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("hotel not found")
+	}
+
+	return nil
 }

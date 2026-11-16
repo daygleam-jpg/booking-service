@@ -31,7 +31,12 @@ func (h *HotelHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	hotel, err := h.hotelUseCase.GetByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Hotel not found", http.StatusNotFound)
+		if err.Error() == "hotel not found" {
+			http.Error(w, "Hotel not found", http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -69,7 +74,7 @@ func (h *HotelHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.TrimSpace(hotel.Location) == "" {
-		http.Error(w, "Hotel name is required", http.StatusBadRequest)
+		http.Error(w, "Hotel location is required", http.StatusBadRequest)
 		return
 	}
 	if err := h.hotelUseCase.Create(r.Context(), &hotel); err != nil {
@@ -120,19 +125,22 @@ func (h *HotelHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
 func (h *HotelHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "invalid hotel ID", http.StatusBadRequest)
+		http.Error(w, "Invalid hotel ID", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.hotelUseCase.Delete(r.Context(), id); err != nil {
-		http.Error(w, "Failed to delete hotel",
-			http.StatusInternalServerError)
+		if err.Error() == "hotel not found" {
+			http.Error(w, "Hotel not found", http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 

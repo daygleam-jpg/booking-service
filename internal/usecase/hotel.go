@@ -27,8 +27,12 @@ func (uc *HotelUseCase) GetAll(ctx context.Context) ([]domain.Hotel, error) {
 func (uc *HotelUseCase) Create(ctx context.Context, hotel *domain.Hotel) error {
 	return uc.repo.Create(ctx, hotel)
 }
-func (uc *HotelUseCase) Update(ctx context.Context, hotel *domain.Hotel) error {
-	return uc.repo.Update(ctx, hotel)
+func (uc *HotelUseCase) Update(ctx context.Context, hotel *domain.Hotel) (*domain.Hotel, error) {
+	if err := uc.repo.Update(ctx, hotel); err != nil {
+		return nil, err
+	}
+
+	return uc.repo.GetByID(ctx, hotel.ID)
 }
 func (uc *HotelUseCase) Delete(ctx context.Context, id int64) error {
 	return uc.repo.Delete(ctx, id)

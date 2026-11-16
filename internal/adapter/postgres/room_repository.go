@@ -3,10 +3,13 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"applicationDesignTest/internal/domain"
 	"applicationDesignTest/internal/repository"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type roomRepository struct {
@@ -23,13 +26,28 @@ func (r *roomRepository) Create(ctx context.Context, room *domain.Room) error {
         VALUES ($1, $2, $3)
         RETURNING id, created_at
     `
-	return r.db.QueryRowContext(
+
+	err := r.db.QueryRowContext(
 		ctx,
 		query,
 		room.HotelID,
 		room.Number,
 		room.Status,
 	).Scan(&room.ID, &room.CreatedAt)
+
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case "23505":
+				return fmt.Errorf("room number already exists")
+			case "23503":
+				return fmt.Errorf("hotel not found")
+			}
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (r *roomRepository) GetByHotelID(ctx context.Context, hotelID int64) ([]domain.Room, error) {
