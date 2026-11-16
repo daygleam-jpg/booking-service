@@ -110,17 +110,24 @@ func (r *roomRepository) GetRoomByID(roomID int) (domain.Room, error) {
 
 	return room, err
 }
+
 func (r *roomRepository) IsRoomAvailable(roomID int, checkIn, checkOut time.Time) (bool, error) {
 	query := `
-        SELECT NOT EXISTS (
-            SELECT 1
-            FROM bookings
-            WHERE room_id = $1
-              AND status = 'confirmed'
-              AND check_in < $3
-              AND check_out > $2
-        )
-    `
+		SELECT EXISTS (
+			SELECT 1
+			FROM rooms
+			WHERE id = $1
+			  AND status = 'available'
+		)
+		AND NOT EXISTS (
+			SELECT 1
+			FROM bookings
+			WHERE room_id = $1
+			  AND status = 'confirmed'
+			  AND check_in < $3
+			  AND check_out > $2
+		)
+	`
 
 	var available bool
 
@@ -132,4 +139,23 @@ func (r *roomRepository) IsRoomAvailable(roomID int, checkIn, checkOut time.Time
 	).Scan(&available)
 
 	return available, err
+}
+
+func (r *roomRepository) HasConfirmedBooking(ctx context.Context, roomID int64, date time.Time) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM bookings
+			WHERE room_id = $1
+			  AND status = 'confirmed'
+			  AND check_in <= $2
+			  AND check_out > $2
+		)
+	`
+
+	var booked bool
+
+	err := r.db.QueryRowContext(ctx, query, roomID, date).Scan(&booked)
+
+	return booked, err
 }

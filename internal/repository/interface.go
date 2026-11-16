@@ -17,4 +17,5 @@ type RoomRepository interface {
 	GetByID(ctx context.Context, id int64) (*domain.Room, error)
 	GetByHotelID(ctx context.Context, hotelID int64) ([]domain.Room, error)
 	Create(ctx context.Context, room *domain.Room) error
+	HasConfirmedBooking(ctx context.Context, roomID int64, date time.Time) (bool, error)
 }
