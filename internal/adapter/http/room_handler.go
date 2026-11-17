@@ -2,7 +2,7 @@ package http
 
 import (
 	"applicationDesignTest/internal/domain"
-	roomUseCase "applicationDesignTest/internal/usecase/room"
+	"applicationDesignTest/internal/usecase"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -10,10 +10,10 @@ import (
 )
 
 type RoomHandler struct {
-	roomUseCase *roomUseCase.RoomUseCase
+	roomUseCase *usecase.RoomUseCase
 }
 
-func NewRoomHandler(uc *roomUseCase.RoomUseCase) *RoomHandler {
+func NewRoomHandler(uc *usecase.RoomUseCase) *RoomHandler {
 	return &RoomHandler{roomUseCase: uc}
 }
 

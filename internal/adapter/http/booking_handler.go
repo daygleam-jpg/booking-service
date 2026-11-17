@@ -1,26 +1,25 @@
 package http
 
 import (
+	"applicationDesignTest/internal/usecase"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 	"time"
-
-	bookingUseCase "applicationDesignTest/internal/usecase/booking"
 )
 
 type BookingHandler struct {
-	bookingUC *bookingUseCase.BookingUseCase
+	bookingUC *usecase.BookingUseCase
 }
 
-func NewBookingHandler(uc *bookingUseCase.BookingUseCase) *BookingHandler {
+func NewBookingHandler(uc *usecase.BookingUseCase) *BookingHandler {
 	return &BookingHandler{bookingUC: uc}
 }
 
 func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var input bookingUseCase.CreateBookingInput
+	var input usecase.CreateBookingInput
 
 	var request struct {
 		UserID   int    `json:"user_id"`
@@ -76,10 +75,6 @@ func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"id":      bookingID,
-		"message": "Booking created successfully",
-	})
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Booking created successfully",
 	})
 }

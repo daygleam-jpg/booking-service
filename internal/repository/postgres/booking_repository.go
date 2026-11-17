@@ -4,14 +4,13 @@ import (
 	"database/sql"
 
 	"applicationDesignTest/internal/domain"
-	"applicationDesignTest/internal/repository"
 )
 
 type bookingRepository struct {
 	db *sql.DB
 }
 
-func NewBookingRepository(db *sql.DB) repository.BookingRepository {
+func NewBookingRepository(db *sql.DB) *bookingRepository {
 	return &bookingRepository{db: db}
 }
 

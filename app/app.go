@@ -13,10 +13,8 @@ import (
 	"time"
 
 	httpadapter "applicationDesignTest/internal/adapter/http"
-	"applicationDesignTest/internal/adapter/postgres"
+	"applicationDesignTest/internal/repository/postgres"
 	"applicationDesignTest/internal/usecase"
-	bookingUseCase "applicationDesignTest/internal/usecase/booking"
-	roomUseCase "applicationDesignTest/internal/usecase/room"
 )
 
 type App struct {
@@ -37,12 +35,12 @@ func New() (*App, error) {
 
 	// Rooms
 	roomRepo := postgres.NewRoomRepository(db)
-	roomUC := roomUseCase.NewRoomUseCase(roomRepo)
+	roomUC := usecase.NewRoomUseCase(roomRepo)
 	roomHandler := httpadapter.NewRoomHandler(roomUC)
 
 	// Bookings
 	bookingRepo := postgres.NewBookingRepository(db)
-	bookingUC := bookingUseCase.NewBookingUseCase(roomRepo, bookingRepo)
+	bookingUC := usecase.NewBookingUseCase(roomRepo, bookingRepo)
 	bookingHandler := httpadapter.NewBookingHandler(bookingUC)
 
 	router := httpadapter.NewRouter(

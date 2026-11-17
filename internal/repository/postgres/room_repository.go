@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"applicationDesignTest/internal/domain"
-	"applicationDesignTest/internal/repository"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -16,7 +15,7 @@ type roomRepository struct {
 	db *sql.DB
 }
 
-func NewRoomRepository(db *sql.DB) repository.RoomRepository {
+func NewRoomRepository(db *sql.DB) *roomRepository {
 	return &roomRepository{db: db}
 }
 

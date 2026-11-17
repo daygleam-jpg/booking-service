@@ -1,18 +1,28 @@
-package booking
+package usecase
 
 import (
-	"applicationDesignTest/internal/domain"
-	"applicationDesignTest/internal/repository"
 	"errors"
 	"time"
+
+	"applicationDesignTest/internal/domain"
 )
 
-type BookingUseCase struct {
-	roomRepo    repository.RoomRepository
-	bookingRepo repository.BookingRepository
+type bookingRoomRepository interface {
+	GetRoomByID(roomID int) (domain.Room, error)
+	IsRoomAvailable(roomID int, checkIn, checkOut time.Time) (bool, error)
 }
 
-func NewBookingUseCase(roomRepo repository.RoomRepository, bookingRepo repository.BookingRepository) *BookingUseCase {
+type bookingRepository interface {
+	CreateBooking(booking domain.Booking) (int64, error)
+	CancelBooking(bookingID int) error
+}
+
+type BookingUseCase struct {
+	roomRepo    bookingRoomRepository
+	bookingRepo bookingRepository
+}
+
+func NewBookingUseCase(roomRepo bookingRoomRepository, bookingRepo bookingRepository) *BookingUseCase {
 	return &BookingUseCase{
 		roomRepo:    roomRepo,
 		bookingRepo: bookingRepo,

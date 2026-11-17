@@ -1,18 +1,25 @@
-package room
+package usecase
 
 import (
-	"applicationDesignTest/internal/domain"
-	"applicationDesignTest/internal/repository"
 	"context"
 	"fmt"
 	"time"
+
+	"applicationDesignTest/internal/domain"
 )
 
-type RoomUseCase struct {
-	repo repository.RoomRepository
+type roomRepository interface {
+	GetByID(ctx context.Context, id int64) (*domain.Room, error)
+	GetByHotelID(ctx context.Context, hotelID int64) ([]domain.Room, error)
+	Create(ctx context.Context, room *domain.Room) error
+	HasConfirmedBooking(ctx context.Context, roomID int64, date time.Time) (bool, error)
 }
 
-func NewRoomUseCase(repo repository.RoomRepository) *RoomUseCase {
+type RoomUseCase struct {
+	repo roomRepository
+}
+
+func NewRoomUseCase(repo roomRepository) *RoomUseCase {
 	return &RoomUseCase{repo: repo}
 }
 

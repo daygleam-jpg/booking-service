@@ -6,14 +6,13 @@ import (
 	"errors"
 
 	"applicationDesignTest/internal/domain"
-	"applicationDesignTest/internal/repository"
 )
 
 type hotelRepository struct {
 	db *sql.DB
 }
 
-func NewHotelRepository(db *sql.DB) repository.HotelRepository {
+func NewHotelRepository(db *sql.DB) *hotelRepository {
 	return &hotelRepository{db: db}
 }
 
