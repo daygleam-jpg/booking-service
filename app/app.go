@@ -1,16 +1,22 @@
 package app
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	httpadapter "applicationDesignTest/internal/adapter/http"
 	"applicationDesignTest/internal/adapter/postgres"
 	"applicationDesignTest/internal/usecase"
 	bookingUseCase "applicationDesignTest/internal/usecase/booking"
 	roomUseCase "applicationDesignTest/internal/usecase/room"
-	"database/sql"
 )
 
 type App struct {
@@ -54,10 +60,52 @@ func New() (*App, error) {
 func (a *App) Run() error {
 	defer a.db.Close()
 
-	log.Println("Server started on :8080")
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: a.router,
+	}
 
-	if err := http.ListenAndServe(":8080", a.router); err != nil {
-		return fmt.Errorf("server failed: %w", err)
+	// Listen for interrupt and termination signals.
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	serverErr := make(chan error, 1)
+
+	go func() {
+		log.Println("Server started on :8080")
+		serverErr <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("server failed: %w", err)
+		}
+
+	case <-ctx.Done():
+		log.Println("Shutdown signal received")
+
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(),
+			10*time.Second,
+		)
+		defer cancel()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			_ = server.Close()
+			return fmt.Errorf("graceful shutdown failed: %w", err)
+		}
+
+		if err := <-serverErr; err != nil &&
+			!errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("server failed: %w", err)
+		}
+
+		log.Println("Server stopped gracefully")
 	}
 
 	return nil
