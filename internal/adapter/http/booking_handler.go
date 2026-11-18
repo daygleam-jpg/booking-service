@@ -10,12 +10,18 @@ import (
 	"time"
 )
 
+type bookingUseCase interface {
+	CreateBooking(input usecase.CreateBookingInput) (int64, error)
+	CancelBooking(id int) error
+}
 type BookingHandler struct {
-	bookingUC *usecase.BookingUseCase
+	bookingUC bookingUseCase
 }
 
-func NewBookingHandler(uc *usecase.BookingUseCase) *BookingHandler {
-	return &BookingHandler{bookingUC: uc}
+func NewBookingHandler(uc bookingUseCase) *BookingHandler {
+	return &BookingHandler{
+		bookingUC: uc,
+	}
 }
 
 func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {

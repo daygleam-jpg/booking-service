@@ -1,18 +1,28 @@
 package http
 
 import (
+	"applicationDesignTest/internal/domain"
 	"applicationDesignTest/internal/usecase"
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-type HotelHandler struct {
-	hotelUseCase *usecase.HotelUseCase
+type hotelUseCase interface {
+	GetByID(ctx context.Context, id int64) (*domain.Hotel, error)
+	GetAll(ctx context.Context) ([]domain.Hotel, error)
+	Create(ctx context.Context, input usecase.CreateHotelInput) (*domain.Hotel, error)
+	Update(ctx context.Context, input usecase.UpdateHotelInput) (*domain.Hotel, error)
+	Delete(ctx context.Context, id int64) error
 }
 
-func NewHotelHandler(uc *usecase.HotelUseCase) *HotelHandler {
+type HotelHandler struct {
+	hotelUseCase hotelUseCase
+}
+
+func NewHotelHandler(uc hotelUseCase) *HotelHandler {
 	return &HotelHandler{
 		hotelUseCase: uc,
 	}

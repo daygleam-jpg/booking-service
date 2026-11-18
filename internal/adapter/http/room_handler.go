@@ -1,19 +1,28 @@
 package http
 
 import (
+	"applicationDesignTest/internal/domain"
 	"applicationDesignTest/internal/usecase"
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-type RoomHandler struct {
-	roomUseCase *usecase.RoomUseCase
+type roomUseCase interface {
+	GetByHotelID(ctx context.Context, hotelID int64) ([]domain.Room, error)
+	Create(ctx context.Context, input usecase.CreateRoomInput) (*domain.Room, error)
 }
 
-func NewRoomHandler(uc *usecase.RoomUseCase) *RoomHandler {
-	return &RoomHandler{roomUseCase: uc}
+type RoomHandler struct {
+	roomUseCase roomUseCase
+}
+
+func NewRoomHandler(uc roomUseCase) *RoomHandler {
+	return &RoomHandler{
+		roomUseCase: uc,
+	}
 }
 
 func (h *RoomHandler) GetByHotelID(w http.ResponseWriter, r *http.Request) {
