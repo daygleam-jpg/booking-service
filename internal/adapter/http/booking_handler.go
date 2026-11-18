@@ -1,33 +1,27 @@
 package http
 
 import (
+	"applicationDesignTest/internal/usecase"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
-
-	bookingUseCase "applicationDesignTest/internal/usecase/booking"
 )
 
 type BookingHandler struct {
-	bookingUC *bookingUseCase.BookingUseCase
+	bookingUC *usecase.BookingUseCase
 }
 
-func NewBookingHandler(uc *bookingUseCase.BookingUseCase) *BookingHandler {
+func NewBookingHandler(uc *usecase.BookingUseCase) *BookingHandler {
 	return &BookingHandler{bookingUC: uc}
 }
 
 func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var input bookingUseCase.CreateBookingInput
+	var input usecase.CreateBookingInput
 
-	var request struct {
-		UserID   int    `json:"user_id"`
-		HotelID  int    `json:"hotel_id"`
-		RoomID   int    `json:"room_id"`
-		CheckIn  string `json:"check_in"`
-		CheckOut string `json:"check_out"`
-	}
-
+	var request CreateBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -50,17 +44,38 @@ func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.bookingUC.CreateBooking(input); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	bookingID, err := h.bookingUC.CreateBooking(input)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			http.Error(w, "Room not found", http.StatusNotFound)
+		case err.Error() == "room does not belong to the specified hotel",
+			err.Error() == "invalid booking identifiers",
+			err.Error() == "departure date must be after arrival date",
+			err.Error() == "arrival date cannot be in the past":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case err.Error() == "room is under maintenance",
+			err.Error() == "room is not available":
+			http.Error(w, err.Error(), http.StatusConflict)
+		default:
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Booking created successfully",
-	})
-}
 
+	response := CreateBookingResponse{
+		ID:      bookingID,
+		Message: "Booking created successfully",
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return
+	}
+
+}
 func (h *BookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
@@ -69,9 +84,12 @@ func (h *BookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.bookingUC.CancelBooking(id); err != nil {
-		http.Error(w, "Failed to cancel booking", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Booking not found", http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusNoContent)
 }

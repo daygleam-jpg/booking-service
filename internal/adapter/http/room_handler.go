@@ -1,8 +1,7 @@
 package http
 
 import (
-	"applicationDesignTest/internal/domain"
-	roomUseCase "applicationDesignTest/internal/usecase/room"
+	"applicationDesignTest/internal/usecase"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -10,10 +9,10 @@ import (
 )
 
 type RoomHandler struct {
-	roomUseCase *roomUseCase.RoomUseCase
+	roomUseCase *usecase.RoomUseCase
 }
 
-func NewRoomHandler(uc *roomUseCase.RoomUseCase) *RoomHandler {
+func NewRoomHandler(uc *usecase.RoomUseCase) *RoomHandler {
 	return &RoomHandler{roomUseCase: uc}
 }
 
@@ -30,10 +29,24 @@ func (h *RoomHandler) GetByHotelID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(rooms)
-}
+	response := make([]RoomResponse, 0, len(rooms))
 
+	for _, room := range rooms {
+		response = append(response, RoomResponse{
+			ID:        room.ID,
+			HotelID:   room.HotelID,
+			Number:    room.Number,
+			Status:    room.Status,
+			CreatedAt: room.CreatedAt,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return
+	}
+}
 func (h *RoomHandler) Create(w http.ResponseWriter, r *http.Request) {
 	hotelID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -41,25 +54,50 @@ func (h *RoomHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var room domain.Room
-	if err := json.NewDecoder(r.Body).Decode(&room); err != nil {
+	var req CreateRoomRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	if strings.TrimSpace(room.Number) == "" {
+	if strings.TrimSpace(req.Number) == "" {
 		http.Error(w, "Room number is required", http.StatusBadRequest)
 		return
 	}
 
-	room.HotelID = hotelID
+	input := usecase.CreateRoomInput{
+		HotelID: hotelID,
+		Number:  req.Number,
+		Status:  req.Status,
+	}
 
-	if err := h.roomUseCase.Create(r.Context(), &room); err != nil {
-		http.Error(w, "Failed to create room", http.StatusInternalServerError)
+	room, err := h.roomUseCase.Create(r.Context(), input)
+	if err != nil {
+		switch {
+		case strings.Contains(err.Error(), "room number already exists"):
+			http.Error(w, "Room number already exists", http.StatusConflict)
+		case strings.Contains(err.Error(), "hotel not found"):
+			http.Error(w, "Hotel not found", http.StatusNotFound)
+		case strings.Contains(err.Error(), "invalid room status"):
+			http.Error(w, "Invalid room status", http.StatusBadRequest)
+		default:
+			http.Error(w, "Failed to create room", http.StatusInternalServerError)
+		}
 		return
+	}
+
+	response := RoomResponse{
+		ID:        room.ID,
+		HotelID:   room.HotelID,
+		Number:    room.Number,
+		Status:    room.Status,
+		CreatedAt: room.CreatedAt,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(room)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return
+	}
 }

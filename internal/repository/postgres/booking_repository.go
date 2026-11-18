@@ -4,27 +4,29 @@ import (
 	"database/sql"
 
 	"applicationDesignTest/internal/domain"
-	"applicationDesignTest/internal/repository"
 )
 
 type bookingRepository struct {
 	db *sql.DB
 }
 
-func NewBookingRepository(db *sql.DB) repository.BookingRepository {
+func NewBookingRepository(db *sql.DB) *bookingRepository {
 	return &bookingRepository{db: db}
 }
 
-func (r *bookingRepository) CreateBooking(booking domain.Booking) error {
+func (r *bookingRepository) CreateBooking(booking domain.Booking) (int64, error) {
 	query := `
 		INSERT INTO bookings (
 			user_id, hotel_id, room_id,
 			check_in, check_out, status
 		)
 		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
 	`
 
-	_, err := r.db.Exec(
+	var bookingID int64
+
+	err := r.db.QueryRow(
 		query,
 		booking.UserID,
 		booking.HotelID,
@@ -32,16 +34,16 @@ func (r *bookingRepository) CreateBooking(booking domain.Booking) error {
 		booking.CheckIn,
 		booking.CheckOut,
 		booking.Status,
-	)
+	).Scan(&bookingID)
 
-	return err
+	return bookingID, err
 }
 
 func (r *bookingRepository) CancelBooking(bookingID int) error {
 	query := `
 		UPDATE bookings
 		SET status = 'cancelled'
-		WHERE id = $1 AND status = 'confirmed'
+		WHERE id = $1
 	`
 
 	result, err := r.db.Exec(query, bookingID)
