@@ -8,6 +8,12 @@ import (
 	"applicationDesignTest/internal/domain"
 )
 
+type CreateRoomInput struct {
+	HotelID int64
+	Number  string
+	Status  domain.RoomStatus
+}
+
 type roomRepository interface {
 	GetByID(ctx context.Context, id int64) (*domain.Room, error)
 	GetByHotelID(ctx context.Context, hotelID int64) ([]domain.Room, error)
@@ -51,19 +57,29 @@ func (uc *RoomUseCase) GetByHotelID(ctx context.Context, hotelID int64) ([]domai
 	return rooms, nil
 }
 
-func (uc *RoomUseCase) Create(ctx context.Context, room *domain.Room) error {
-	if room.Number == "" {
-		return fmt.Errorf("room number is required")
+func (uc *RoomUseCase) Create(ctx context.Context, input CreateRoomInput) (*domain.Room, error) {
+	if input.Number == "" {
+		return nil, fmt.Errorf("room number is required")
 	}
 
-	if room.Status == "" {
-		room.Status = domain.RoomStatusAvailable
+	if input.Status == "" {
+		input.Status = domain.RoomStatusAvailable
 	}
 
-	if room.Status != domain.RoomStatusAvailable &&
-		room.Status != domain.RoomStatusMaintenance {
-		return fmt.Errorf("invalid room status")
+	if input.Status != domain.RoomStatusAvailable &&
+		input.Status != domain.RoomStatusMaintenance {
+		return nil, fmt.Errorf("invalid room status")
 	}
 
-	return uc.repo.Create(ctx, room)
+	room := &domain.Room{
+		HotelID: input.HotelID,
+		Number:  input.Number,
+		Status:  input.Status,
+	}
+
+	if err := uc.repo.Create(ctx, room); err != nil {
+		return nil, err
+	}
+
+	return room, nil
 }

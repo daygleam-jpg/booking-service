@@ -21,14 +21,7 @@ func NewBookingHandler(uc *usecase.BookingUseCase) *BookingHandler {
 func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input usecase.CreateBookingInput
 
-	var request struct {
-		UserID   int    `json:"user_id"`
-		HotelID  int    `json:"hotel_id"`
-		RoomID   int    `json:"room_id"`
-		CheckIn  string `json:"check_in"`
-		CheckOut string `json:"check_out"`
-	}
-
+	var request CreateBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -73,12 +66,16 @@ func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":      bookingID,
-		"message": "Booking created successfully",
-	})
-}
+	response := CreateBookingResponse{
+		ID:      bookingID,
+		Message: "Booking created successfully",
+	}
 
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return
+	}
+
+}
 func (h *BookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {

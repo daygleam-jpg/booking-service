@@ -11,9 +11,9 @@ const (
 )
 
 type Room struct {
-	ID        int64      `json:"id"`
-	HotelID   int64      `json:"hotel_id"`
-	Number    string     `json:"number"`
-	Status    RoomStatus `json:"status"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID        int64
+	HotelID   int64
+	Number    string
+	Status    RoomStatus
+	CreatedAt time.Time
 }
